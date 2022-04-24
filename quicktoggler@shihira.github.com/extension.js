@@ -7,6 +7,7 @@
 const Main = imports.ui.main;
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
+const GObject = imports.gi.GObject;
 const PopupMenu = imports.ui.popupMenu;
 const PanelMenu = imports.ui.panelMenu;
 const St = imports.gi.St;
@@ -27,10 +28,10 @@ const LOGGER_INFO = 0;
 const LOGGER_WARNING = 1;
 const LOGGER_ERROR = 2;
 
-const Logger = new Lang.Class({
-    Name: 'Logger',
-
-    _init: function(log_file) {
+const Logger = GObject.registerClass({
+    GTypeName: 'Logger',
+}, class Logger extends GObject.Object {
+    _init(log_file) {
         this._log_file = log_file;
         // initailize log_backend
         if(!log_file)
@@ -51,19 +52,19 @@ const Logger = new Lang.Class({
         this.error = function(t) {
             if(this.level <= LOGGER_ERROR) this.log(t);
         };
-    },
+    }
 
-    _initEmptyLog: function() {
+    _initEmptyLog() {
         this.log = function(_) { };
-    },
+    }
 
-    _initGnomeLog: function() {
+    _initGnomeLog() {
         this.log = function(s) {
             global.log("[QuickToggler] " + s);
         };
-    },
+    }
 
-    _initFileLog: function() {
+    _initFileLog() {
         this.log = function(s) {
             // all operations are synchronous: any needs to optimize?
             if(!this._output_file || !this._output_file.query_exists(null) ||
@@ -84,13 +85,13 @@ const Logger = new Lang.Class({
             this._fstream.write(String(new Date())+" "+s+"\n", null);
             this._fstream.flush(null);
         }
-    },
+    }
 
-    notify: function(t, str, details) {
+    notify(t, str, details) {
         this.ncond = this.ncond || ['proc', 'ext', 'state'];
         if(this.ncond.indexOf(t) < 0) return;
         Main.notify(str, details || "");
-    },
+    }
 });
 
 let logger = null;
@@ -110,10 +111,10 @@ function errorToString(e) {
     return e.toString();
 }
 
-const SearchBox = new Lang.Class({
-    Name: 'SearchBox',
-
-    _init: function() {
+const SearchBox = GObject.registerClass({
+    GTypeName: 'SearchBox',
+}, class SearchBox extends GObject.Object {
+    _init() {
         this.actor = new St.BoxLayout({ style_class: 'search-box' });
         this.search = new St.Entry({
                 hint_text: _("Filter"),
@@ -125,9 +126,9 @@ const SearchBox = new Lang.Class({
 
         this.search.connect('key-release-event',
             Lang.bind(this, this._onKeyReleaseEvent));
-    },
+    }
 
-    _onKeyReleaseEvent: function(_, ev) {
+    _onKeyReleaseEvent(_, ev) {
         let text = this.search.get_text().toString();
         let selected = ev.get_key_symbol() == Clutter.KEY_Return;
         if(!text) {
@@ -137,14 +138,14 @@ const SearchBox = new Lang.Class({
             let ret_ent = this.searchEntries(this.entries, text);
             this._callback()(ret_ent, selected);
         }
-    },
+    }
 
-    setSearch: function(entries, callback) {
+    setSearch(entries, callback) {
         this._callback = function() { return callback };
         this.entries = entries;
-    },
+    }
 
-    searchEntries: function(entries, pattern) {
+    searchEntries(entries, pattern) {
         let return_list = [];
         for(let e in entries) {
             // For entries that have a member `entries`, we enter it(recursion).
@@ -163,9 +164,9 @@ const SearchBox = new Lang.Class({
         }
 
         return return_list;
-    },
+    }
 
-    matchText: function(title, pattern) {
+    matchText(title, pattern) {
         // construct regexp pattern: fuzzy search
         let regex_sec = [];
         regex_sec.push(".*\\b");
@@ -181,34 +182,33 @@ const SearchBox = new Lang.Class({
         let regex = new RegExp(regex_sec.join(""), "i");
 
         return regex.test(title);
-    },
+    }
 
-    reset: function() {
+    reset() {
         this.search.set_text("");
-    },
+    }
 });
 
 // a global instance of Logger, created when initing indicator
-const TogglerIndicator = new Lang.Class({
-    Name: 'TogglerIndicator',
-    Extends: PanelMenu.Button,
-
-    _init: function() {
-        this.parent(St.Align.START);
+const TogglerIndicator = GObject.registerClass({
+    GTypeName: 'TogglerIndicator',
+}, class TogglerIndicator extends PanelMenu.Button {
+    _init() {
+        super._init(St.Align.START);
         this._loadSettings();
 
         this.search_mode = false;
-    },
+    }
 
-    get_layout: function() {
+    get_layout() {
         if(!this._layout) {
             this._layout = new St.BoxLayout();
             this.actor.add_actor(this._layout);
         }
         return this._layout;
-    },
+    }
 
-    _loadSettings: function() {
+    _loadSettings() {
         this._settings = new Convenience.getSettings();
 
         this._loadLogger(); // load first
@@ -231,16 +231,16 @@ const TogglerIndicator = new Lang.Class({
             if(loaders[key])
                 this[loaders[key]]();
         }));
-    },
+    }
 
-    _loadLogger: function() {
+    _loadLogger() {
         let log_file = this._settings.get_string(Prefs.LOG_FILE);
 
         logger = new Logger(log_file);
         logger.ncond = this._settings.get_strv(Prefs.NOTIFICATION_COND);
-    },
+    }
 
-    _loadIcon: function() {
+    _loadIcon() {
         let icon_name = this._settings.get_string(Prefs.INDICATOR_ICON);
 
         if(!this._icon) {
@@ -252,9 +252,9 @@ const TogglerIndicator = new Lang.Class({
         } else {
             this._icon.set_icon_name(icon_name);
         }
-    },
+    }
 
-    _loadText: function() {
+    _loadText() {
         let text = this._settings.get_string(Prefs.INDICATOR_TEXT);
 
         if(!this._text) {
@@ -273,9 +273,9 @@ const TogglerIndicator = new Lang.Class({
             this._text.clutter_text.set_text(text);
         else
             getLogger().error("Cannot set indicator string.");
-    },
+    }
 
-    _loadConfig: function() {
+    _loadConfig() {
         try {
             // automatically create configuration file when path is invalid
             let entries_file = this._settings.get_string(Prefs.ENTRIES_FILE);
@@ -327,9 +327,9 @@ const TogglerIndicator = new Lang.Class({
                 "An error occurs when loading entries.",
                 errorToString(e));
         }
-    },
+    }
 
-    _loadSearchBar: function() {
+    _loadSearchBar() {
         let is_show_filter = this._settings.get_boolean(Prefs.SHOW_FILTER);
         if(!is_show_filter) {
             if(this.searchBox)
@@ -344,9 +344,9 @@ const TogglerIndicator = new Lang.Class({
         }
         this.searchBox.setSearch(this.config_loader.entries,
             Lang.bind(this, this._gotSearchResult));
-    },
+    }
 
-    _loadPulser: function() {
+    _loadPulser() {
         let interval = this._settings.get_int(Prefs.DETECTION_INTERVAL);
 
         if(!this._pulser) {
@@ -359,9 +359,9 @@ const TogglerIndicator = new Lang.Class({
         }
 
         this.pulse();
-    },
+    }
 
-    _loadShortcut: function() {
+    _loadShortcut() {
         // introduce in different version of GNOME
         let kbmode = Shell.ActionMode || Shell.KeyBindingMode || Main.KeybindingMode;
 
@@ -373,19 +373,19 @@ const TogglerIndicator = new Lang.Class({
                 if(this.searchBox)
                     this.searchBox.search.grab_key_focus();
             }));
-    },
+    }
 
-    _onOpenStateChanged: function(menu, open) {
-        this.parent(menu, open);
+    _onOpenStateChanged(menu, open) {
+        super._onOpenStateChanged(menu, open);
 
         if(open) {
             if(this.searchBox)
                 this.searchBox.reset();
             this._gotSearchResult([], false);
         }
-    },
+    }
 
-    pulse: function() {
+    pulse() {
         try {
             for(let i in this.config_loader.entries) {
                 let conf = this.config_loader.entries[i];
@@ -397,9 +397,9 @@ const TogglerIndicator = new Lang.Class({
             getLogger().error(errorToString(e));
         }
         return true;
-    },
+    }
 
-    _gotSearchResult: function(result, selected) {
+    _gotSearchResult(result, selected) {
         // If confirmed, close the menu directly
         if(selected) {
             if(result[0])
@@ -428,13 +428,13 @@ const TogglerIndicator = new Lang.Class({
                 this.menu.addMenuItem(item);
             }
         }
-    },
+    }
 
-    destroy: function() {
+    destroy() {
         Main.wm.removeKeybinding(Prefs.MENU_SHORTCUT);
 
-        this.parent();
-    },
+        super.destroy();
+    }
 });
 
 ////////////////////////////////////////////////////////////////////////////////
