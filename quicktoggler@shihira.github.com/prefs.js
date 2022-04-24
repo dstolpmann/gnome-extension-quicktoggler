@@ -13,14 +13,14 @@ const Convenience = Me.imports.convenience;
  *  3. Specify a getter and a setter, which access the widgets.
  */
 
-const ENTRIES_FILE = "entries-file";
-const DETECTION_INTERVAL = "detection-interval";
-const LOG_FILE = "log-file";
-const INDICATOR_ICON = "indicator-icon";
-const INDICATOR_TEXT = "indicator-text";
-const MENU_SHORTCUT = "menu-shortcut";
-const NOTIFICATION_COND = "notification-cond";
-const SHOW_FILTER = "show-filter";
+var ENTRIES_FILE = "entries-file";
+var DETECTION_INTERVAL = "detection-interval";
+var LOG_FILE = "log-file";
+var INDICATOR_ICON = "indicator-icon";
+var INDICATOR_TEXT = "indicator-text";
+var MENU_SHORTCUT = "menu-shortcut";
+var NOTIFICATION_COND = "notification-cond";
+var SHOW_FILTER = "show-filter";
 
 const PrefsWindow = new Lang.Class({
     Name: "PrefsWindow",

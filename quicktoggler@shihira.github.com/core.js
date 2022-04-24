@@ -394,7 +394,7 @@ function createEntry(entry_prop) {
     return new cls(entry_prop);
 }
 
-const ConfigLoader = GObject.registerClass({
+var ConfigLoader = GObject.registerClass({
     GTypeName: 'ConfigLoader',
 }, class ConfigLoader extends GObject.Object {
     _init(filename) {
