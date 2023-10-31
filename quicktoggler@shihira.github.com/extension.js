@@ -4,25 +4,21 @@
  * License: GPLv2
  */
 
-const Main = imports.ui.main;
-const GLib = imports.gi.GLib;
-const Gio = imports.gi.Gio;
-const GObject = imports.gi.GObject;
-const PopupMenu = imports.ui.popupMenu;
-const PanelMenu = imports.ui.panelMenu;
-const St = imports.gi.St;
-const Clutter = imports.gi.Clutter;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const Lang = imports.lang;
 
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const Core = Me.imports.core;
-const Convenience = Me.imports.convenience;
-const Prefs = Me.imports.prefs;
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
+import GObject from 'gi://GObject';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import St from 'gi://St';
+import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 
-const Gettext = imports.gettext.domain("gnome-extension-quicktoggler");
-const _ = Gettext.gettext;
+import {ConfigLoader} from './core.js';
+import * as Prefs from './prefs.js';
+
+import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 const LOGGER_INFO = 0;
 const LOGGER_WARNING = 1;
@@ -97,7 +93,7 @@ const Logger = GObject.registerClass({
 let logger = null;
 
 // lazy-evaluation
-function getLogger() {
+export function getLogger() {
     if(logger === null)
         logger = new Logger("gnome-shell");
     return logger;
@@ -125,7 +121,7 @@ const SearchBox = GObject.registerClass({
         this.actor.add(this.search);
 
         this.search.connect('key-release-event',
-            Lang.bind(this, this._onKeyReleaseEvent));
+            this._onKeyReleaseEvent.bind(this));
     }
 
     _onKeyReleaseEvent(_, ev) {
@@ -193,8 +189,8 @@ const SearchBox = GObject.registerClass({
 const TogglerIndicator = GObject.registerClass({
     GTypeName: 'TogglerIndicator',
 }, class TogglerIndicator extends PanelMenu.Button {
-    _init() {
-        super._init(St.Align.START);
+    constructor() {
+        super(0 /*St.Align.START*/);
         this._loadSettings();
 
         this.search_mode = false;
@@ -209,7 +205,8 @@ const TogglerIndicator = GObject.registerClass({
     }
 
     _loadSettings() {
-        this._settings = new Convenience.getSettings();
+        const Me = Extension.lookupByUUID('quicktoggler@shihira.github.com');
+        this._settings = Me.getSettings();
 
         this._loadLogger(); // load first
         this._loadIcon();
@@ -219,7 +216,7 @@ const TogglerIndicator = GObject.registerClass({
         this._loadPulser();
         this._loadShortcut();
 
-        this._settings.connect('changed', Lang.bind(this, function(_, key) {
+        this._settings.connect('changed', function(_, key) {
             let loaders = {};
             loaders[Prefs.LOG_FILE]             = "_loadLogger";
             loaders[Prefs.NOTIFICATION_COND]    = "_loadLogger";
@@ -230,7 +227,7 @@ const TogglerIndicator = GObject.registerClass({
 
             if(loaders[key])
                 this[loaders[key]]();
-        }));
+        }.bind(this));
     }
 
     _loadLogger() {
@@ -287,6 +284,7 @@ const TogglerIndicator = GObject.registerClass({
                 if(!this.entries_file || this.entries_file != entries_file) {
                     let fileobj = Gio.File.new_for_path(entries_file);
                     if(!fileobj.query_exists(null)) {
+                        const Me = Extension.lookupByUUID('quicktoggler@shihira.github.com');
                         let orgf = Gio.File.new_for_path((Me.path + "/entries.json"));
                         orgf.copy(fileobj, 0, null, null);
                     }
@@ -300,7 +298,7 @@ const TogglerIndicator = GObject.registerClass({
                     getLogger().warning("Reloading " + entries_file);
 
                     let monitor = fileobj.monitor(Gio.FileMonitorFlags.NONE, null);
-                    monitor.connect('changed', Lang.bind(this, this._loadConfig));
+                    monitor.connect('changed', this._loadConfig.bind(this));
                     this.monitor = monitor;
                     this.entries_file = entries_file;
 
@@ -311,7 +309,7 @@ const TogglerIndicator = GObject.registerClass({
             getLogger().warning("Reloading " + entries_file);
 
             if(!this._config_loader)
-                this.config_loader = new Core.ConfigLoader();
+                this.config_loader = new ConfigLoader();
             this.config_loader.loadConfig(entries_file);
 
             this.menu.removeAll();
@@ -343,7 +341,7 @@ const TogglerIndicator = GObject.registerClass({
             this.menu.box.insert_child_at_index(this.searchBox.actor, 0);
         }
         this.searchBox.setSearch(this.config_loader.entries,
-            Lang.bind(this, this._gotSearchResult));
+            this._gotSearchResult.bind(this));
     }
 
     _loadPulser() {
@@ -351,11 +349,11 @@ const TogglerIndicator = GObject.registerClass({
 
         if(!this._pulser) {
             this._pulser = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval,
-                Lang.bind(this, this.pulse));
+                this.pulse.bind(this));
         } else {
             GLib.Source.remove(this._pulser);
             this._pulser = GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval,
-                Lang.bind(this, this.pulse));
+                this.pulse.bind(this));
         }
 
         this.pulse();
@@ -368,11 +366,11 @@ const TogglerIndicator = GObject.registerClass({
         Main.wm.addKeybinding(Prefs.MENU_SHORTCUT, this._settings,
             Meta.KeyBindingFlags.NONE,
             kbmode.NORMAL | kbmode.MESSAGE_TRAY,
-            Lang.bind(this, function() {
+            function() {
                 this.menu.toggle();
                 if(this.searchBox)
                     this.searchBox.search.grab_key_focus();
-            }));
+            }.bind(this));
     }
 
     _onOpenStateChanged(menu, open) {
@@ -440,18 +438,14 @@ const TogglerIndicator = GObject.registerClass({
 ////////////////////////////////////////////////////////////////////////////////
 // Entries
 
-let indicator;
+export default class QuickToggler extends Extension {
+    enable() {
+        this.indicator = new TogglerIndicator();
+        Main.panel.addToStatusArea("QuickToggler", this.indicator);
+    }
 
-function init() {
-    Convenience.initTranslations("gnome-extension-quicktoggler");
-}
-
-function enable() {
-    indicator = new TogglerIndicator();
-    Main.panel.addToStatusArea("QuickToggler", indicator);
-}
-
-function disable() {
-    indicator.destroy();
+    disable() {
+        this.indicator.destroy();
+    }
 }
 

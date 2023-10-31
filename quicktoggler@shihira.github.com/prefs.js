@@ -1,9 +1,11 @@
+/*
 const Gtk = imports.gi.Gtk;
 const GObject = imports.gi.GObject;
 const Lang = imports.lang;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
+*/
 
 /*
  * How to add an option:
@@ -13,15 +15,16 @@ const Convenience = Me.imports.convenience;
  *  3. Specify a getter and a setter, which access the widgets.
  */
 
-var ENTRIES_FILE = "entries-file";
-var DETECTION_INTERVAL = "detection-interval";
-var LOG_FILE = "log-file";
-var INDICATOR_ICON = "indicator-icon";
-var INDICATOR_TEXT = "indicator-text";
-var MENU_SHORTCUT = "menu-shortcut";
-var NOTIFICATION_COND = "notification-cond";
-var SHOW_FILTER = "show-filter";
+export const ENTRIES_FILE = "entries-file";
+export const DETECTION_INTERVAL = "detection-interval";
+export const LOG_FILE = "log-file";
+export const INDICATOR_ICON = "indicator-icon";
+export const INDICATOR_TEXT = "indicator-text";
+export const MENU_SHORTCUT = "menu-shortcut";
+export const NOTIFICATION_COND = "notification-cond";
+export const SHOW_FILTER = "show-filter";
 
+/*
 const PrefsWindow = new Lang.Class({
     Name: "PrefsWindow",
 
@@ -228,4 +231,5 @@ function buildPrefsWidget() {
 
     return w.layout_prefs;
 }
+*/
 

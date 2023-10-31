@@ -1,14 +1,12 @@
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const GObject = imports.gi.GObject;
-const Json = imports.gi.Json;
-const Lang = imports.lang;
-const Main = imports.ui.main;
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Json from 'gi://Json';
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
-const PopupMenu = imports.ui.popupMenu;
+import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const getLogger = Me.imports.extension.getLogger;
+import {getLogger} from './extension.js';
 
 const Entry = GObject.registerClass({
     GTypeName: 'Entry',
@@ -177,8 +175,8 @@ let _toggler_state_cache = { };
 const TogglerEntry = GObject.registerClass({
     GTypeName: 'TogglerEntry',
 }, class TogglerEntry extends Entry {
-    _init(prop) {
-        super._init(prop);
+    constructor(prop) {
+        super(prop);
 
         this.command_on = prop.command_on || "";
         this.command_off = prop.command_off || "";
@@ -194,7 +192,7 @@ const TogglerEntry = GObject.registerClass({
 
         this.item = new PopupMenu.PopupSwitchMenuItem(this.title, false);
         this.item.label.get_clutter_text().set_use_markup(true);
-        this.item.connect('toggled', Lang.bind(this, this._onManuallyToggled));
+        this.item.connect('toggled', this._onManuallyToggled.bind(this));
 
         this._loadState();
 
@@ -254,7 +252,7 @@ const TogglerEntry = GObject.registerClass({
     }
 
     pulse() {
-        this._detect(Lang.bind(this, function(state) {
+        this._detect(function(state) {
             this.compareState(state);
 
             this._storeState(state);
@@ -264,7 +262,7 @@ const TogglerEntry = GObject.registerClass({
             if(!state && !this._manually_switched_off && this.auto_on)
                 // do not call setToggleState here, because command_on may fail
                 this._onToggled(this.item, true);
-        }));
+        }.bind(this));
     }
 
     perform() {
@@ -275,8 +273,8 @@ const TogglerEntry = GObject.registerClass({
 const LauncherEntry = GObject.registerClass({
     GTypeName: 'LauncherEntry',
 }, class LauncherEntry extends Entry {
-    _init(prop) {
-        super._init(prop);
+    constructor(prop) {
+        super(prop);
 
         this.command = prop.command || "";
     }
@@ -286,7 +284,7 @@ const LauncherEntry = GObject.registerClass({
 
         this.item = new PopupMenu.PopupMenuItem(this.title);
         this.item.label.get_clutter_text().set_use_markup(true);
-        this.item.connect('activate', Lang.bind(this, this._onClicked));
+        this.item.connect('activate', this._onClicked.bind(this));
 
         return this.item;
     }
@@ -303,8 +301,8 @@ const LauncherEntry = GObject.registerClass({
 const SubMenuEntry = GObject.registerClass({
     GTypeName: 'SubMenuEntry',
 }, class SubMenuEntry extends Entry {
-    _init(prop) {
-        super._init(prop)
+    constructor(prop) {
+        super(prop)
 
         if(prop.entries == undefined)
             throw new Error("Expected entries provided in submenu entry.");
@@ -342,7 +340,9 @@ const SubMenuEntry = GObject.registerClass({
 const SeparatorEntry = GObject.registerClass({
     GTypeName: 'SeparatorEntry',
 }, class SeparatorEntry extends Entry {
-    _init(prop) { }
+    constructor(prop) {
+        super(prop)
+    }
 
     createItem() {
         this._try_destroy();
@@ -394,10 +394,8 @@ function createEntry(entry_prop) {
     return new cls(entry_prop);
 }
 
-var ConfigLoader = GObject.registerClass({
-    GTypeName: 'ConfigLoader',
-}, class ConfigLoader extends GObject.Object {
-    _init(filename) {
+export class ConfigLoader {
+    constructor(filename) {
         if(filename)
             this.loadConfig(filename);
     }
@@ -451,5 +449,5 @@ var ConfigLoader = GObject.registerClass({
             this.entries.push(createEntry(entry_prop));
         }
     }
-});
+}
 
