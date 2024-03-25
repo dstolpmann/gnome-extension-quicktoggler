@@ -199,7 +199,7 @@ const TogglerIndicator = GObject.registerClass({
     get_layout() {
         if(!this._layout) {
             this._layout = new St.BoxLayout();
-            this.actor.add_actor(this._layout);
+            this.actor.add_child(this._layout);
         }
         return this._layout;
     }
